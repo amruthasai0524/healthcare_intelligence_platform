@@ -184,16 +184,14 @@ if st.button("🔍 Predict Heart Disease Risk"):
     try:
         probability = model.predict_proba(input_data)
 
-        # Class 0 = Disease
+        # Class 0 = Heart Disease
         risk_score = probability[0][0] * 100
 
     except:
-        probability = None
         risk_score = None
 
     st.markdown("---")
 
-    # Class 0 = Disease
     if prediction[0] == 0:
 
         st.error("⚠️ High Risk of Heart Disease")
@@ -213,12 +211,6 @@ if st.button("🔍 Predict Heart Disease Risk"):
                 "Heart Disease Risk",
                 f"{risk_score:.2f}%"
             )
-
-    # Debug Output
-    st.write("Prediction Value:", prediction[0])
-
-    if probability is not None:
-        st.write("Probability:", probability)
 
     st.markdown("### Patient Information Summary")
 
