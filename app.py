@@ -1,42 +1,169 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
 import joblib
 
+# Load Model
 model = joblib.load("random_forest_model.pkl")
-scaler = joblib.load("scaler.pkl")
 
-st.title("Heart Disease Prediction System")
+# Page Configuration
+st.set_page_config(
+    page_title="Healthcare Intelligence Platform",
+    page_icon="🏥",
+    layout="wide"
+)
 
-age = st.number_input("Age", 20, 100)
+# Title
+st.title("🏥 Healthcare Intelligence Platform")
+st.subheader("Heart Disease Risk Prediction System")
 
-sex = st.selectbox("Sex", [0,1])
+st.markdown("---")
 
-cp = st.selectbox("Chest Pain Type", [0,1,2,3])
+# Input Section
+col1, col2 = st.columns(2)
 
-trestbps = st.number_input("Resting Blood Pressure")
+with col1:
 
-chol = st.number_input("Cholesterol")
+    age = st.number_input(
+        "Age",
+        min_value=1,
+        max_value=120,
+        value=45
+    )
 
-fbs = st.selectbox("Fasting Blood Sugar", [0,1])
+    gender = st.selectbox(
+        "Gender",
+        ["Female", "Male"]
+    )
 
-restecg = st.selectbox("Rest ECG", [0,1,2])
+    sex = 0 if gender == "Female" else 1
 
-thalach = st.number_input("Maximum Heart Rate")
+    cp_option = st.selectbox(
+        "Chest Pain Type",
+        [
+            "Typical Angina",
+            "Atypical Angina",
+            "Non-Anginal Pain",
+            "Asymptomatic"
+        ]
+    )
 
-exang = st.selectbox("Exercise Induced Angina", [0,1])
+    cp_mapping = {
+        "Typical Angina": 0,
+        "Atypical Angina": 1,
+        "Non-Anginal Pain": 2,
+        "Asymptomatic": 3
+    }
 
-oldpeak = st.number_input("Old Peak")
+    cp = cp_mapping[cp_option]
 
-slope = st.selectbox("Slope", [0,1,2])
+    trestbps = st.number_input(
+        "Resting Blood Pressure (mm Hg)",
+        min_value=80,
+        max_value=250,
+        value=120
+    )
 
-ca = st.selectbox("Number of Vessels", [0,1,2,3,4])
+    chol = st.number_input(
+        "Serum Cholesterol (mg/dl)",
+        min_value=100,
+        max_value=700,
+        value=200
+    )
 
-thal = st.selectbox("Thal", [0,1,2,3])
+    fbs_option = st.selectbox(
+        "Fasting Blood Sugar > 120 mg/dl",
+        ["No", "Yes"]
+    )
 
-if st.button("Predict"):
+    fbs = 0 if fbs_option == "No" else 1
 
-    patient_data = np.array([[
+with col2:
 
+    restecg_option = st.selectbox(
+        "Resting ECG Result",
+        [
+            "Normal",
+            "ST-T Wave Abnormality",
+            "Left Ventricular Hypertrophy"
+        ]
+    )
+
+    restecg_mapping = {
+        "Normal": 0,
+        "ST-T Wave Abnormality": 1,
+        "Left Ventricular Hypertrophy": 2
+    }
+
+    restecg = restecg_mapping[restecg_option]
+
+    thalach = st.number_input(
+        "Maximum Heart Rate Achieved",
+        min_value=60,
+        max_value=250,
+        value=150
+    )
+
+    exang_option = st.selectbox(
+        "Exercise Induced Angina",
+        ["No", "Yes"]
+    )
+
+    exang = 0 if exang_option == "No" else 1
+
+    oldpeak = st.number_input(
+        "ST Depression (Oldpeak)",
+        min_value=0.0,
+        max_value=10.0,
+        value=1.0,
+        step=0.1
+    )
+
+    slope_option = st.selectbox(
+        "Slope of Peak Exercise ST Segment",
+        [
+            "Upsloping",
+            "Flat",
+            "Downsloping"
+        ]
+    )
+
+    slope_mapping = {
+        "Upsloping": 0,
+        "Flat": 1,
+        "Downsloping": 2
+    }
+
+    slope = slope_mapping[slope_option]
+
+    ca = st.selectbox(
+        "Number of Major Vessels",
+        [0, 1, 2, 3, 4]
+    )
+
+    thal_option = st.selectbox(
+        "Thalassemia",
+        [
+            "Unknown",
+            "Normal",
+            "Fixed Defect",
+            "Reversible Defect"
+        ]
+    )
+
+    thal_mapping = {
+        "Unknown": 0,
+        "Normal": 1,
+        "Fixed Defect": 2,
+        "Reversible Defect": 3
+    }
+
+    thal = thal_mapping[thal_option]
+
+# Prediction Button
+if st.button("🔍 Predict Heart Disease Risk"):
+
+    input_data = np.array([[
         age,
         sex,
         cp,
@@ -50,17 +177,77 @@ if st.button("Predict"):
         slope,
         ca,
         thal
-
     ]])
 
-    patient_data = scaler.transform(patient_data)
+    prediction = model.predict(input_data)
 
-    prediction = model.predict(patient_data)
+    try:
+        probability = model.predict_proba(input_data)
 
-    if prediction[0] == 1:
+        # Class 0 = Disease
+        risk_score = probability[0][0] * 100
 
-        st.error("High Risk of Heart Disease")
+    except:
+        probability = None
+        risk_score = None
+
+    st.markdown("---")
+
+    # Class 0 = Disease
+    if prediction[0] == 0:
+
+        st.error("⚠️ High Risk of Heart Disease")
+
+        if risk_score is not None:
+            st.metric(
+                "Heart Disease Risk",
+                f"{risk_score:.2f}%"
+            )
 
     else:
 
-        st.success("Low Risk of Heart Disease")
+        st.success("✅ Low Risk of Heart Disease")
+
+        if risk_score is not None:
+            st.metric(
+                "Heart Disease Risk",
+                f"{risk_score:.2f}%"
+            )
+
+    # Debug Output
+    st.write("Prediction Value:", prediction[0])
+
+    if probability is not None:
+        st.write("Probability:", probability)
+
+    st.markdown("### Patient Information Summary")
+
+    summary = pd.DataFrame({
+        "Parameter": [
+            "Age",
+            "Gender",
+            "Chest Pain Type",
+            "Blood Pressure",
+            "Cholesterol",
+            "Heart Rate",
+            "Exercise Angina",
+            "Thalassemia"
+        ],
+        "Value": [
+            age,
+            gender,
+            cp_option,
+            trestbps,
+            chol,
+            thalach,
+            exang_option,
+            thal_option
+        ]
+    })
+
+    st.dataframe(summary, use_container_width=True)
+
+st.markdown("---")
+st.caption(
+    "Healthcare Intelligence Platform | Heart Disease Prediction using Random Forest"
+)
